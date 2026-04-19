@@ -214,7 +214,7 @@ const LINUX_RESERVED_SHORTCUTS = [
   "Alt+F8",
   "Alt+F9",
   "Alt+F10",
-  "Alt+Space",
+  // "Alt+Space",
   "Alt+Left",
   "Alt+Right",
   "Alt+PrintScreen",
