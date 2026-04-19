@@ -1,0 +1,12 @@
+.git
+.github
+node_modules
+src/node_modules
+dist
+out
+build
+resources/bin
+native/meeting-aec-helper/build
+native/meeting-aec-helper/third_party
+npm-debug.log*
+.env
