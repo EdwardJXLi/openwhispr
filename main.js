@@ -55,6 +55,11 @@ const DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL = {
 const BASE_WINDOWS_APP_ID = "com.gizmolabs.openwhispr";
 const DEFAULT_AUTH_BRIDGE_PORT = 5199;
 
+function isEnvFlagEnabled(name) {
+  const value = (process.env[name] || "").trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes" || value === "on";
+}
+
 function isElectronBinaryExec() {
   const execPath = (process.execPath || "").toLowerCase();
   return (
@@ -962,7 +967,9 @@ async function startApp() {
   await trayManager.createTray();
 
   updateManager.setWindows(windowManager.mainWindow, windowManager.controlPanelWindow);
-  updateManager.checkForUpdatesOnStartup();
+  if (!isEnvFlagEnabled("OPENWHISPR_DISABLE_AUTO_UPDATE")) {
+    updateManager.checkForUpdatesOnStartup();
+  }
 
   if (process.platform === "darwin") {
     const { isGlobeLikeHotkey, isMouseButtonHotkey } = require("./src/helpers/hotkeyManager");
