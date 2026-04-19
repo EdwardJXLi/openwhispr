@@ -1447,6 +1447,8 @@
       "floatingIcon": {
         "autoHide": "Auto-hide when idle",
         "autoHideDescription": "Keep the icon hidden until you start dictating",
+        "show": "Show floating icon",
+        "showDescription": "Disable this to keep dictation running without ever showing the on-screen icon",
         "startPosition": "Start position",
         "startPositionDescription": "Where the voice recorder panel appears on screen",
         "bottomRight": "Bottom Right",

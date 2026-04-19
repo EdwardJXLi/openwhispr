@@ -263,6 +263,8 @@ function useSettingsInternal() {
     setAudioCuesEnabled: store.setAudioCuesEnabled,
     pauseMediaOnDictation: store.pauseMediaOnDictation,
     setPauseMediaOnDictation: store.setPauseMediaOnDictation,
+    floatingIconDisabled: store.floatingIconDisabled,
+    setFloatingIconDisabled: store.setFloatingIconDisabled,
     floatingIconAutoHide: store.floatingIconAutoHide,
     setFloatingIconAutoHide: store.setFloatingIconAutoHide,
     startMinimized: store.startMinimized,

@@ -41,6 +41,7 @@ const PERSISTED_KEYS = [
   "MEETING_KEY",
   "ACTIVATION_MODE",
   "FLOATING_ICON_AUTO_HIDE",
+  "FLOATING_ICON_DISABLED",
   "PANEL_START_POSITION",
   "START_MINIMIZED",
   "UI_LANGUAGE",
@@ -452,6 +453,16 @@ class EnvironmentManager {
 
   saveFloatingIconAutoHide(enabled) {
     const result = this._saveKey("FLOATING_ICON_AUTO_HIDE", String(enabled));
+    this.saveAllKeysToEnvFile().catch(() => {});
+    return result;
+  }
+
+  getFloatingIconDisabled() {
+    return this._getKey("FLOATING_ICON_DISABLED") === "true";
+  }
+
+  saveFloatingIconDisabled(enabled) {
+    const result = this._saveKey("FLOATING_ICON_DISABLED", String(enabled));
     this.saveAllKeysToEnvFile().catch(() => {});
     return result;
   }
