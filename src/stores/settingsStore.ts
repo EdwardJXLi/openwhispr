@@ -114,6 +114,7 @@ const BOOLEAN_SETTINGS = new Set([
   "telemetryEnabled",
   "audioCuesEnabled",
   "pauseMediaOnDictation",
+  "floatingIconDisabled",
   "floatingIconAutoHide",
   "startMinimized",
   "disableAutoUpdate",
@@ -356,6 +357,7 @@ export interface SettingsState
   isSignedIn: boolean;
   audioCuesEnabled: boolean;
   pauseMediaOnDictation: boolean;
+  floatingIconDisabled: boolean;
   floatingIconAutoHide: boolean;
   startMinimized: boolean;
   disableAutoUpdate: boolean;
@@ -543,6 +545,7 @@ export interface SettingsState
   setDataRetentionEnabled: (value: boolean) => void;
   setAudioCuesEnabled: (value: boolean) => void;
   setPauseMediaOnDictation: (value: boolean) => void;
+  setFloatingIconDisabled: (enabled: boolean) => void;
   setFloatingIconAutoHide: (enabled: boolean) => void;
   setStartMinimized: (enabled: boolean) => void;
   setDisableAutoUpdate: (enabled: boolean) => void;
@@ -774,6 +777,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   dataRetentionEnabled: readBoolean("dataRetentionEnabled", true),
   audioCuesEnabled: readBoolean("audioCuesEnabled", true),
   pauseMediaOnDictation: readBoolean("pauseMediaOnDictation", false),
+  floatingIconDisabled: readBoolean("floatingIconDisabled", false),
   floatingIconAutoHide: readBoolean("floatingIconAutoHide", false),
   startMinimized: readBoolean("startMinimized", false),
   notificationsEnabled: readBoolean("notificationsEnabled", true),
@@ -1218,6 +1222,15 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   },
   setAudioCuesEnabled: createBooleanSetter("audioCuesEnabled"),
   setPauseMediaOnDictation: createBooleanSetter("pauseMediaOnDictation"),
+
+  setFloatingIconDisabled: (enabled: boolean) => {
+    if (get().floatingIconDisabled === enabled) return;
+    if (isBrowser) localStorage.setItem("floatingIconDisabled", String(enabled));
+    set({ floatingIconDisabled: enabled });
+    if (isBrowser) {
+      window.electronAPI?.notifyFloatingIconDisabledChanged?.(enabled);
+    }
+  },
 
   setFloatingIconAutoHide: (enabled: boolean) => {
     if (get().floatingIconAutoHide === enabled) return;

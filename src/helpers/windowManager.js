@@ -43,6 +43,7 @@ class WindowManager {
     this.winPushState = null;
     this._cachedActivationMode = "tap";
     this._floatingIconAutoHide = false;
+    this._floatingIconDisabled = false;
     this._agentAnimationState = null;
     this._panelStartPosition = "bottom-right";
     this._isDictatingToggle = false;
@@ -484,6 +485,19 @@ class WindowManager {
 
   setFloatingIconAutoHide(enabled) {
     this._floatingIconAutoHide = Boolean(enabled);
+  }
+
+  setFloatingIconDisabled(enabled) {
+    this._floatingIconDisabled = Boolean(enabled);
+
+    if (this._floatingIconDisabled) {
+      this.hideDictationPanel();
+      return;
+    }
+
+    if (this.mainWindow && !this.mainWindow.isDestroyed() && !this._floatingIconAutoHide) {
+      this.showDictationPanel();
+    }
   }
 
   setPanelStartPosition(position) {
@@ -1008,6 +1022,9 @@ class WindowManager {
 
   showDictationPanel(options = {}) {
     const { focus = false } = options;
+    if (this._floatingIconDisabled) {
+      return;
+    }
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       const wasHidden = !this.mainWindow.isVisible() || this.mainWindow.isMinimized();
 
@@ -1072,7 +1089,8 @@ class WindowManager {
         this.mainWindow &&
         !this.mainWindow.isDestroyed() &&
         !this.mainWindow.isVisible() &&
-        !this._floatingIconAutoHide
+        !this._floatingIconAutoHide &&
+        !this._floatingIconDisabled
       ) {
         this.showDictationPanel();
       }
@@ -1081,7 +1099,11 @@ class WindowManager {
     this.mainWindow.once("ready-to-show", () => {
       clearTimeout(showTimeout);
       this.enforceMainWindowOnTop();
-      if (!this.mainWindow.isVisible() && !this._floatingIconAutoHide) {
+      if (
+        !this.mainWindow.isVisible() &&
+        !this._floatingIconAutoHide &&
+        !this._floatingIconDisabled
+      ) {
         if (typeof this.mainWindow.showInactive === "function") {
           this.mainWindow.showInactive();
         } else {
