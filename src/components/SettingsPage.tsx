@@ -726,6 +726,8 @@ export default function SettingsPage({
     setAutoPasteEnabled,
     keepTranscriptionInClipboard,
     setKeepTranscriptionInClipboard,
+    floatingIconDisabled,
+    setFloatingIconDisabled,
     floatingIconAutoHide,
     setFloatingIconAutoHide,
     startMinimized,
@@ -2550,10 +2552,25 @@ export default function SettingsPage({
               <SettingsPanel>
                 <SettingsPanelRow>
                   <SettingsRow
+                    label={t("settingsPage.general.floatingIcon.show")}
+                    description={t("settingsPage.general.floatingIcon.showDescription")}
+                  >
+                    <Toggle
+                      checked={!floatingIconDisabled}
+                      onChange={(enabled) => setFloatingIconDisabled(!enabled)}
+                    />
+                  </SettingsRow>
+                </SettingsPanelRow>
+                <SettingsPanelRow>
+                  <SettingsRow
                     label={t("settingsPage.general.floatingIcon.autoHide")}
                     description={t("settingsPage.general.floatingIcon.autoHideDescription")}
                   >
-                    <Toggle checked={floatingIconAutoHide} onChange={setFloatingIconAutoHide} />
+                    <Toggle
+                      checked={floatingIconAutoHide}
+                      onChange={setFloatingIconAutoHide}
+                      disabled={floatingIconDisabled}
+                    />
                   </SettingsRow>
                 </SettingsPanelRow>
                 <SettingsPanelRow>
@@ -2562,13 +2579,14 @@ export default function SettingsPage({
                     description={t("settingsPage.general.floatingIcon.startPositionDescription")}
                   >
                     <select
+                      disabled={floatingIconDisabled}
                       value={panelStartPosition}
                       onChange={(e) =>
                         setPanelStartPosition(
                           e.target.value as "bottom-right" | "center" | "bottom-left"
                         )
                       }
-                      className="h-7 rounded border border-border/70 bg-surface-1/80 px-2.5 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm hover:border-border-hover hover:bg-surface-2/70 focus:outline-none focus:ring-2 focus:ring-ring/30 focus:ring-offset-1 transition-colors duration-200"
+                      className="h-7 rounded border border-border/70 bg-surface-1/80 px-2.5 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm hover:border-border-hover hover:bg-surface-2/70 focus:outline-none focus:ring-2 focus:ring-ring/30 focus:ring-offset-1 transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <option value="bottom-right">
                         {t("settingsPage.general.floatingIcon.bottomRight")}

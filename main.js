@@ -761,6 +761,7 @@ async function startApp() {
 
   windowManager.setActivationModeCache(environmentManager.getActivationMode());
   windowManager.setFloatingIconAutoHide(environmentManager.getFloatingIconAutoHide());
+  windowManager.setFloatingIconDisabled(environmentManager.getFloatingIconDisabled());
   windowManager.setPanelStartPosition(environmentManager.getPanelStartPosition());
 
   ipcMain.on("activation-mode-changed", (_event, mode) => {
@@ -774,6 +775,14 @@ async function startApp() {
     // Relay to the floating icon window so it can react immediately
     if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) {
       windowManager.mainWindow.webContents.send("floating-icon-auto-hide-changed", enabled);
+    }
+  });
+
+  ipcMain.on("floating-icon-disabled-changed", (_event, enabled) => {
+    windowManager.setFloatingIconDisabled(enabled);
+    environmentManager.saveFloatingIconDisabled(enabled);
+    if (windowManager.mainWindow && !windowManager.mainWindow.isDestroyed()) {
+      windowManager.mainWindow.webContents.send("floating-icon-disabled-changed", enabled);
     }
   });
 

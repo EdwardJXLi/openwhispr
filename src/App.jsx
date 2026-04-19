@@ -91,6 +91,7 @@ export default function App() {
   const [hasDragged, setHasDragged] = useState(false);
 
   // Floating icon auto-hide setting (read from store, synced via IPC)
+  const floatingIconDisabled = useSettingsStore((s) => s.floatingIconDisabled);
   const floatingIconAutoHide = useSettingsStore((s) => s.floatingIconAutoHide);
   const panelStartPosition = useSettingsStore((s) => s.panelStartPosition);
   const prevAutoHideRef = useRef(floatingIconAutoHide);
@@ -206,6 +207,14 @@ export default function App() {
     return () => unsubscribe?.();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = window.electronAPI?.onFloatingIconDisabledChanged?.((enabled) => {
+      localStorage.setItem("floatingIconDisabled", String(enabled));
+      useSettingsStore.setState({ floatingIconDisabled: enabled });
+    });
+    return () => unsubscribe?.();
+  }, []);
+
   const isRecordingRef = useRef(isRecording);
 
   useLayoutEffect(() => {
@@ -223,7 +232,9 @@ export default function App() {
   useEffect(() => {
     let hideTimeout;
 
-    if (floatingIconAutoHide && !isRecording && !isProcessing && toastCount === 0) {
+    if (floatingIconDisabled) {
+      window.electronAPI?.hideWindow?.();
+    } else if (floatingIconAutoHide && !isRecording && !isProcessing && toastCount === 0) {
       // Delay briefly so processing can start after recording stops without a flash
       hideTimeout = setTimeout(() => {
         window.electronAPI?.hideWindow?.();
@@ -234,7 +245,7 @@ export default function App() {
 
     prevAutoHideRef.current = floatingIconAutoHide;
     return () => clearTimeout(hideTimeout);
-  }, [isRecording, isProcessing, floatingIconAutoHide, toastCount]);
+  }, [floatingIconDisabled, isRecording, isProcessing, floatingIconAutoHide, toastCount]);
 
   const handleClose = () => {
     window.electronAPI.hideWindow();

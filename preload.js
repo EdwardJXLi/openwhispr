@@ -668,6 +668,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     "floating-icon-auto-hide-changed",
     (callback) => (_event, enabled) => callback(enabled)
   ),
+  notifyFloatingIconDisabledChanged: (enabled) =>
+    ipcRenderer.send("floating-icon-disabled-changed", enabled),
+  onFloatingIconDisabledChanged: registerListener(
+    "floating-icon-disabled-changed",
+    (callback) => (_event, enabled) => callback(enabled)
+  ),
 
   // Panel start position
   notifyPanelStartPositionChanged: (position) =>
