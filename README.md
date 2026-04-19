@@ -59,6 +59,38 @@ npm run dev
 
 Requires Node.js 24+. See the [full documentation](https://docs.openwhispr.com/quickstart) for setup guides, platform-specific instructions, and build details.
 
+## Linux Build Paths
+
+Two local Linux build paths are available:
+
+- `NixPath`: keep using `shell.nix` if you want the existing Nix shell workflow.
+- `DockerPath`: run the full Linux packaging flow inside a CI-like container and build artifacts from there.
+
+Podman is used automatically when available, with Docker as a fallback. The Docker/Podman path mirrors the Linux GitHub Actions job by installing the same system packages, running `npm ci`, fetching the Linux native package overrides, downloading runtime binaries, and then invoking Electron Builder inside the container.
+
+```bash
+# Existing Nix shell path
+nix-shell
+npm run build:linux:appimage
+
+# Container-only path, defaults to podman when installed
+npm run build:linux:appimage:docker
+```
+
+You can also build other Linux targets entirely in the container:
+
+```bash
+npm run build:linux:docker
+npm run build:linux:deb:docker
+npm run build:linux:rpm:docker
+```
+
+Useful environment variables for the container flow:
+
+- `CONTAINER_ENGINE=podman` or `CONTAINER_ENGINE=docker`
+- `OPENWHISPR_CI_IMAGE=openwhispr-linux-ci:local`
+- `GH_TOKEN`, `GITHUB_TOKEN`, `VITE_NEON_AUTH_URL`, `VITE_OPENWHISPR_API_URL`, `VITE_OPENWHISPR_OAUTH_CALLBACK_URL`
+
 ## Documentation
 
 Visit **[docs.openwhispr.com](https://docs.openwhispr.com)** for:
