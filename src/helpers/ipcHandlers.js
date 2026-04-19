@@ -2717,6 +2717,16 @@ class IPCHandlers {
       return this.environmentManager.saveActivationMode(mode);
     });
 
+    ipcMain.handle("get-disable-auto-update", async () => {
+      return this.environmentManager.getDisableAutoUpdate();
+    });
+
+    ipcMain.handle("save-disable-auto-update", async (event, enabled) => {
+      const result = this.environmentManager.saveDisableAutoUpdate(enabled);
+      this.updateManager?.setAutomaticChecksEnabled?.(!enabled);
+      return result;
+    });
+
     ipcMain.handle("save-anthropic-key", async (event, key) => {
       return this.environmentManager.saveAnthropicKey(key);
     });
