@@ -2224,6 +2224,7 @@
   },
   "gpu": {
     "transcriptionBanner": "GPU で文字起こしを高速化",
+    "transcriptionBannerAmd": "AMD GPUアクセラレーションで文字起こしを高速化",
     "reasoningBanner": "GPU で AI 処理を高速化",
     "enableButton": "GPU を有効化",
     "active": "GPU アクセラレーション有効",

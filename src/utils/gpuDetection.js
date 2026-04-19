@@ -1,6 +1,7 @@
 const { execFile } = require("child_process");
 
 let cachedGpuInfo = null;
+let cachedAmdGpuInfo = null;
 
 function detectNvidiaGpu() {
   if (cachedGpuInfo) return Promise.resolve(cachedGpuInfo);
@@ -86,4 +87,97 @@ function listNvidiaGpus() {
   });
 }
 
-module.exports = { detectNvidiaGpu, listNvidiaGpus };
+function detectAmdGpu() {
+  if (cachedAmdGpuInfo) return Promise.resolve(cachedAmdGpuInfo);
+
+  if (process.platform === "darwin") {
+    cachedAmdGpuInfo = { hasAmdGpu: false };
+    return Promise.resolve(cachedAmdGpuInfo);
+  }
+
+  // On Linux, use lspci to detect AMD/ATI GPUs
+  if (process.platform === "linux") {
+    return new Promise((resolve) => {
+      execFile("lspci", { timeout: 5000 }, (error, stdout) => {
+        if (error || !stdout) {
+          cachedAmdGpuInfo = { hasAmdGpu: false };
+          resolve(cachedAmdGpuInfo);
+          return;
+        }
+
+        // Match AMD/ATI VGA or 3D controller lines
+        const amdLines = stdout
+          .split("\n")
+          .filter(
+            (line) =>
+              (line.includes("VGA") || line.includes("3D controller")) &&
+              (line.includes("AMD") || line.includes("ATI"))
+          );
+
+        if (amdLines.length === 0) {
+          cachedAmdGpuInfo = { hasAmdGpu: false };
+          resolve(cachedAmdGpuInfo);
+          return;
+        }
+
+        // Extract GPU name from first match
+        const match = amdLines[0].match(
+          /(?:VGA compatible controller|3D controller):\s*(?:Advanced Micro Devices, Inc\.\s*\[AMD(?:\/ATI)?\]\s*)?(.+?)(?:\s*\(rev [0-9a-f]+\))?$/i
+        );
+        const gpuName = match ? match[1].trim() : "AMD GPU";
+
+        cachedAmdGpuInfo = {
+          hasAmdGpu: true,
+          gpuName,
+        };
+        resolve(cachedAmdGpuInfo);
+      });
+    });
+  }
+
+  // On Windows, use WMIC to detect AMD GPUs
+  if (process.platform === "win32") {
+    return new Promise((resolve) => {
+      execFile(
+        "wmic",
+        ["path", "win32_videocontroller", "get", "name,adapterram", "/format:csv"],
+        { timeout: 5000 },
+        (error, stdout) => {
+          if (error || !stdout) {
+            cachedAmdGpuInfo = { hasAmdGpu: false };
+            resolve(cachedAmdGpuInfo);
+            return;
+          }
+
+          const lines = stdout
+            .trim()
+            .split("\n")
+            .filter((line) => line.toLowerCase().includes("amd") || line.toLowerCase().includes("radeon"));
+
+          if (lines.length === 0) {
+            cachedAmdGpuInfo = { hasAmdGpu: false };
+            resolve(cachedAmdGpuInfo);
+            return;
+          }
+
+          // CSV format: Node,AdapterRAM,Name
+          const parts = lines[0].split(",");
+          const gpuName = parts[parts.length - 1]?.trim() || "AMD GPU";
+          const adapterRam = parseInt(parts[parts.length - 2], 10) || 0;
+
+          cachedAmdGpuInfo = {
+            hasAmdGpu: true,
+            gpuName,
+            vramMb: adapterRam > 0 ? Math.round(adapterRam / (1024 * 1024)) : undefined,
+          };
+          resolve(cachedAmdGpuInfo);
+        }
+      );
+    });
+  }
+
+  cachedAmdGpuInfo = { hasAmdGpu: false };
+  return Promise.resolve(cachedAmdGpuInfo);
+}
+
+module.exports = { detectNvidiaGpu, listNvidiaGpus, detectAmdGpu };
