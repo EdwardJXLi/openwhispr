@@ -2226,6 +2226,7 @@
   },
   "gpu": {
     "transcriptionBanner": "Ускорьте транскрипцию с помощью GPU",
+    "transcriptionBannerAmd": "Ускорьте транскрипцию с помощью ускорения на GPU AMD",
     "reasoningBanner": "Ускорьте обработку ИИ с помощью GPU",
     "enableButton": "Включить GPU",
     "active": "Ускорение GPU активно",

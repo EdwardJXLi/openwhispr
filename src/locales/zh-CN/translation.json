@@ -2219,6 +2219,7 @@
   },
   "gpu": {
     "transcriptionBanner": "使用 GPU 加速转录",
+    "transcriptionBannerAmd": "使用AMD GPU加速转录",
     "reasoningBanner": "使用 GPU 加速 AI 处理",
     "enableButton": "启用 GPU",
     "active": "GPU 加速已启用",
