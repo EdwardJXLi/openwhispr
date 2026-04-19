@@ -11,8 +11,10 @@ class UpdateManager {
     this.isDownloading = false;
     this.eventListeners = [];
     this.updateCheckInterval = null;
+    this.updateCheckTimeout = null;
     this.windowManager = null;
     this._suppressNotification = false;
+    this._automaticChecksEnabled = true;
 
     this.setupAutoUpdater();
   }
@@ -304,8 +306,8 @@ class UpdateManager {
   }
 
   checkForUpdatesOnStartup() {
-    if (process.env.NODE_ENV !== "development") {
-      setTimeout(() => {
+    if (process.env.NODE_ENV !== "development" && this._automaticChecksEnabled) {
+      this.updateCheckTimeout = setTimeout(() => {
         console.log("🔄 Checking for updates on startup...");
         autoUpdater.checkForUpdates().catch((err) => {
           console.error("Startup update check failed:", err);
@@ -322,7 +324,31 @@ class UpdateManager {
     }
   }
 
+  setAutomaticChecksEnabled(enabled) {
+    this._automaticChecksEnabled = enabled;
+
+    if (!enabled) {
+      if (this.updateCheckTimeout) {
+        clearTimeout(this.updateCheckTimeout);
+        this.updateCheckTimeout = null;
+      }
+      if (this.updateCheckInterval) {
+        clearInterval(this.updateCheckInterval);
+        this.updateCheckInterval = null;
+      }
+      return;
+    }
+
+    if (!this.updateCheckTimeout && !this.updateCheckInterval) {
+      this.checkForUpdatesOnStartup();
+    }
+  }
+
   cleanup() {
+    if (this.updateCheckTimeout) {
+      clearTimeout(this.updateCheckTimeout);
+      this.updateCheckTimeout = null;
+    }
     if (this.updateCheckInterval) {
       clearInterval(this.updateCheckInterval);
       this.updateCheckInterval = null;

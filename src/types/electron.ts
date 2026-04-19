@@ -1020,6 +1020,8 @@ declare global {
       // Activation mode persistence (file-based for reliable startup)
       getActivationMode?: () => Promise<"tap" | "push">;
       saveActivationMode?: (mode: "tap" | "push") => Promise<void>;
+      getDisableAutoUpdate?: () => Promise<boolean>;
+      saveDisableAutoUpdate?: (enabled: boolean) => Promise<void>;
 
       // Debug logging
       getLogLevel?: () => Promise<string>;

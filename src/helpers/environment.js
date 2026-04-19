@@ -466,6 +466,16 @@ class EnvironmentManager {
     return result;
   }
 
+  getDisableAutoUpdate() {
+    return this._getKey("OPENWHISPR_DISABLE_AUTO_UPDATE") === "true";
+  }
+
+  saveDisableAutoUpdate(enabled) {
+    const result = this._saveKey("OPENWHISPR_DISABLE_AUTO_UPDATE", String(enabled));
+    this.saveAllKeysToEnvFile().catch(() => {});
+    return result;
+  }
+
   getPanelStartPosition() {
     const v = this._getKey("PANEL_START_POSITION");
     if (v === "bottom-right" || v === "center" || v === "bottom-left") return v;
