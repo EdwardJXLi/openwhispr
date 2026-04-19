@@ -401,6 +401,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Activation mode persistence (file-based for reliable startup)
   getActivationMode: () => ipcRenderer.invoke("get-activation-mode"),
   saveActivationMode: (mode) => ipcRenderer.invoke("save-activation-mode", mode),
+  getDisableAutoUpdate: () => ipcRenderer.invoke("get-disable-auto-update"),
+  saveDisableAutoUpdate: (enabled) => ipcRenderer.invoke("save-disable-auto-update", enabled),
 
   saveAllKeysToEnv: () => ipcRenderer.invoke("save-all-keys-to-env"),
   syncStartupPreferences: (prefs) => ipcRenderer.invoke("sync-startup-preferences", prefs),

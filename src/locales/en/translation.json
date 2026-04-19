@@ -1583,6 +1583,8 @@
         "checking": "Checking...",
         "currentVersion": "Current version",
         "devMode": "Running in development mode",
+        "disableAutoUpdate": "Disable automatic update checks",
+        "disableAutoUpdateDescription": "Prevents OpenWhispr from checking for updates on launch and in the background.",
         "dialogs": {
           "almostThere": {
             "description": "The update is almost ready. Please wait a moment.",

@@ -116,6 +116,7 @@ const BOOLEAN_SETTINGS = new Set([
   "pauseMediaOnDictation",
   "floatingIconAutoHide",
   "startMinimized",
+  "disableAutoUpdate",
   "meetingProcessDetection",
   "meetingAudioDetection",
   "speakerDiarizationEnabled",
@@ -357,6 +358,7 @@ export interface SettingsState
   pauseMediaOnDictation: boolean;
   floatingIconAutoHide: boolean;
   startMinimized: boolean;
+  disableAutoUpdate: boolean;
   gcalAccounts: GoogleCalendarAccount[];
   gcalConnected: boolean;
   gcalEmail: string;
@@ -543,6 +545,7 @@ export interface SettingsState
   setPauseMediaOnDictation: (value: boolean) => void;
   setFloatingIconAutoHide: (enabled: boolean) => void;
   setStartMinimized: (enabled: boolean) => void;
+  setDisableAutoUpdate: (enabled: boolean) => void;
   setGcalAccounts: (accounts: GoogleCalendarAccount[]) => void;
   setNotificationsEnabled: (value: boolean) => void;
   setNotifyMeetingDetection: (value: boolean) => void;
@@ -773,6 +776,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   pauseMediaOnDictation: readBoolean("pauseMediaOnDictation", false),
   floatingIconAutoHide: readBoolean("floatingIconAutoHide", false),
   startMinimized: readBoolean("startMinimized", false),
+  disableAutoUpdate: readBoolean("disableAutoUpdate", false),
   notificationsEnabled: readBoolean("notificationsEnabled", true),
   notifyMeetingDetection: readBoolean("notifyMeetingDetection", true),
   notifyCalendarReminders: readBoolean("notifyCalendarReminders", true),
@@ -1233,6 +1237,21 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     }
   },
 
+  setDisableAutoUpdate: (enabled: boolean) => {
+    if (get().disableAutoUpdate === enabled) return;
+    if (isBrowser) localStorage.setItem("disableAutoUpdate", String(enabled));
+    set({ disableAutoUpdate: enabled });
+    if (isBrowser) {
+      window.electronAPI?.saveDisableAutoUpdate?.(enabled).catch((err) => {
+        logger.warn(
+          "Failed to persist auto-update preference",
+          { error: (err as Error).message },
+          "settings"
+        );
+      });
+    }
+  },
+
   setGcalAccounts: (accounts: GoogleCalendarAccount[]) => {
     if (isBrowser) localStorage.setItem("gcalAccounts", JSON.stringify(accounts));
     useSettingsStore.setState({
@@ -1684,6 +1703,10 @@ export async function initializeSettings(): Promise<void> {
 
       for (const key of STALE_SECRET_LOCALSTORAGE_KEYS) {
         localStorage.removeItem(key);
+      }
+      const disableAutoUpdate = await window.electronAPI.getDisableAutoUpdate?.();
+      if (typeof disableAutoUpdate === "boolean") {
+        createBooleanSetter("disableAutoUpdate")(disableAutoUpdate);
       }
     } catch (err) {
       logger.warn(

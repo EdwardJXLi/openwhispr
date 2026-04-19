@@ -730,6 +730,8 @@ export default function SettingsPage({
     setFloatingIconAutoHide,
     startMinimized,
     setStartMinimized,
+    disableAutoUpdate,
+    setDisableAutoUpdate,
     panelStartPosition,
     setPanelStartPosition,
     cloudBackupEnabled,
@@ -2648,6 +2650,14 @@ export default function SettingsPage({
                     description={t("settingsPage.general.startup.startMinimizedDescription")}
                   >
                     <Toggle checked={startMinimized} onChange={setStartMinimized} />
+                  </SettingsRow>
+                </SettingsPanelRow>
+                <SettingsPanelRow>
+                  <SettingsRow
+                    label={t("settingsPage.general.updates.disableAutoUpdate")}
+                    description={t("settingsPage.general.updates.disableAutoUpdateDescription")}
+                  >
+                    <Toggle checked={disableAutoUpdate} onChange={setDisableAutoUpdate} />
                   </SettingsRow>
                 </SettingsPanelRow>
               </SettingsPanel>
