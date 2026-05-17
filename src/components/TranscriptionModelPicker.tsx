@@ -1028,7 +1028,7 @@ export default function TranscriptionModelPicker({
 
           {vulkanDownloading && internalLocalProvider === "whisper" && (
             <div>
-              <DownloadProgressBar modelName="AMD GPU acceleration" progress={vulkanProgress} />
+              <DownloadProgressBar modelName="GPU acceleration" progress={vulkanProgress} />
               <div className="px-2.5 pb-1 flex justify-end">
                 <button
                   onClick={handleVulkanCancel}
@@ -1045,7 +1045,7 @@ export default function TranscriptionModelPicker({
             !vulkanDownloading &&
             getCachedPlatform() !== "darwin" &&
             !cudaStatus?.gpuInfo.hasNvidiaGpu &&
-            vulkanStatus?.gpuInfo.hasAmdGpu && (
+            vulkanStatus?.gpuInfo.hasVulkanGpu && (
               <div className="rounded-md border border-border bg-surface-1 p-2.5">
                 {vulkanStatus.downloaded ? (
                   <div className="flex items-center justify-between">
@@ -1067,7 +1067,7 @@ export default function TranscriptionModelPicker({
                     <Zap size={13} className="text-primary shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-foreground">
-                        {t("gpu.transcriptionBannerAmd")}
+                        {t("gpu.transcriptionBanner")}
                       </p>
                       <div className="flex items-center gap-2 mt-1.5">
                         <Button
