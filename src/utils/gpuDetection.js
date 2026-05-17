@@ -2,6 +2,8 @@ const { execFile } = require("child_process");
 
 let cachedGpuInfo = null;
 let cachedAmdGpuInfo = null;
+let cachedIntelGpuInfo = null;
+let cachedVulkanGpuInfo = null;
 
 function detectNvidiaGpu() {
   if (cachedGpuInfo) return Promise.resolve(cachedGpuInfo);
@@ -180,4 +182,138 @@ function detectAmdGpu() {
   return Promise.resolve(cachedAmdGpuInfo);
 }
 
-module.exports = { detectNvidiaGpu, listNvidiaGpus, detectAmdGpu };
+function detectIntelGpu() {
+  if (cachedIntelGpuInfo) return Promise.resolve(cachedIntelGpuInfo);
+
+  if (process.platform === "darwin") {
+    cachedIntelGpuInfo = { hasIntelGpu: false };
+    return Promise.resolve(cachedIntelGpuInfo);
+  }
+
+  // On Linux, use lspci to detect Intel GPUs (integrated Iris/UHD or discrete Arc)
+  if (process.platform === "linux") {
+    return new Promise((resolve) => {
+      execFile("lspci", { timeout: 5000 }, (error, stdout) => {
+        if (error || !stdout) {
+          cachedIntelGpuInfo = { hasIntelGpu: false };
+          resolve(cachedIntelGpuInfo);
+          return;
+        }
+
+        const intelLines = stdout
+          .split("\n")
+          .filter(
+            (line) =>
+              (line.includes("VGA") || line.includes("3D controller")) &&
+              line.includes("Intel")
+          );
+
+        if (intelLines.length === 0) {
+          cachedIntelGpuInfo = { hasIntelGpu: false };
+          resolve(cachedIntelGpuInfo);
+          return;
+        }
+
+        const match = intelLines[0].match(
+          /(?:VGA compatible controller|3D controller):\s*(?:Intel Corporation\s*)?(.+?)(?:\s*\(rev [0-9a-f]+\))?$/i
+        );
+        const gpuName = match ? match[1].trim() : "Intel GPU";
+
+        cachedIntelGpuInfo = {
+          hasIntelGpu: true,
+          gpuName,
+        };
+        resolve(cachedIntelGpuInfo);
+      });
+    });
+  }
+
+  // On Windows, use WMIC to detect Intel GPUs
+  if (process.platform === "win32") {
+    return new Promise((resolve) => {
+      execFile(
+        "wmic",
+        ["path", "win32_videocontroller", "get", "name,adapterram", "/format:csv"],
+        { timeout: 5000 },
+        (error, stdout) => {
+          if (error || !stdout) {
+            cachedIntelGpuInfo = { hasIntelGpu: false };
+            resolve(cachedIntelGpuInfo);
+            return;
+          }
+
+          const lines = stdout
+            .trim()
+            .split("\n")
+            .filter((line) => {
+              const lower = line.toLowerCase();
+              return (
+                lower.includes("intel") &&
+                (lower.includes("graphics") ||
+                  lower.includes("arc") ||
+                  lower.includes("iris") ||
+                  lower.includes("uhd") ||
+                  lower.includes("hd graphics"))
+              );
+            });
+
+          if (lines.length === 0) {
+            cachedIntelGpuInfo = { hasIntelGpu: false };
+            resolve(cachedIntelGpuInfo);
+            return;
+          }
+
+          // CSV format: Node,AdapterRAM,Name
+          const parts = lines[0].split(",");
+          const gpuName = parts[parts.length - 1]?.trim() || "Intel GPU";
+          const adapterRam = parseInt(parts[parts.length - 2], 10) || 0;
+
+          cachedIntelGpuInfo = {
+            hasIntelGpu: true,
+            gpuName,
+            vramMb: adapterRam > 0 ? Math.round(adapterRam / (1024 * 1024)) : undefined,
+          };
+          resolve(cachedIntelGpuInfo);
+        }
+      );
+    });
+  }
+
+  cachedIntelGpuInfo = { hasIntelGpu: false };
+  return Promise.resolve(cachedIntelGpuInfo);
+}
+
+// Combined detector for any Vulkan-capable GPU (AMD or Intel).
+// NVIDIA is intentionally excluded — CUDA is preferred there.
+async function detectVulkanCapableGpu() {
+  if (cachedVulkanGpuInfo) return cachedVulkanGpuInfo;
+
+  const [amd, intel] = await Promise.all([detectAmdGpu(), detectIntelGpu()]);
+
+  if (amd.hasAmdGpu) {
+    cachedVulkanGpuInfo = {
+      hasVulkanGpu: true,
+      vendor: "amd",
+      gpuName: amd.gpuName,
+      vramMb: amd.vramMb,
+    };
+  } else if (intel.hasIntelGpu) {
+    cachedVulkanGpuInfo = {
+      hasVulkanGpu: true,
+      vendor: "intel",
+      gpuName: intel.gpuName,
+      vramMb: intel.vramMb,
+    };
+  } else {
+    cachedVulkanGpuInfo = { hasVulkanGpu: false };
+  }
+  return cachedVulkanGpuInfo;
+}
+
+module.exports = {
+  detectNvidiaGpu,
+  listNvidiaGpus,
+  detectAmdGpu,
+  detectIntelGpu,
+  detectVulkanCapableGpu,
+};
