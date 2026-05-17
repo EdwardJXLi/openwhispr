@@ -2368,7 +2368,6 @@
   },
   "gpu": {
     "transcriptionBanner": "Speed up transcription with GPU acceleration",
-    "transcriptionBannerAmd": "Speed up transcription with AMD GPU acceleration",
     "reasoningBanner": "Speed up AI processing with GPU acceleration",
     "enableButton": "Enable GPU",
     "active": "GPU acceleration active",

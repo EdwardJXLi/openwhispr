@@ -2272,7 +2272,6 @@
   },
   "gpu": {
     "transcriptionBanner": "Accélérez la transcription avec le GPU",
-    "transcriptionBannerAmd": "Accélérez la transcription avec l'accélération GPU AMD",
     "reasoningBanner": "Accélérez le traitement IA avec le GPU",
     "enableButton": "Activer le GPU",
     "active": "Accélération GPU active",

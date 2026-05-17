@@ -2224,7 +2224,6 @@
   },
   "gpu": {
     "transcriptionBanner": "Transkription mit GPU beschleunigen",
-    "transcriptionBannerAmd": "Transkription mit AMD-GPU-Beschleunigung beschleunigen",
     "reasoningBanner": "KI-Verarbeitung mit GPU beschleunigen",
     "enableButton": "GPU aktivieren",
     "active": "GPU-Beschleunigung aktiv",

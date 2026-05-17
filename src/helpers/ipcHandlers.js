@@ -520,7 +520,7 @@ class IPCHandlers {
   }
 
   async _logDetectedGpus() {
-    const { listNvidiaGpus, detectAmdGpu } = require("../utils/gpuDetection");
+    const { listNvidiaGpus, detectAmdGpu, detectIntelGpu } = require("../utils/gpuDetection");
     const gpus = await listNvidiaGpus();
     if (gpus.length > 0) {
       debugLogger.info(
@@ -537,6 +537,17 @@ class IPCHandlers {
       debugLogger.info("AMD GPU detected", { name: amdInfo.gpuName, vramMb: amdInfo.vramMb }, "gpu");
     } else {
       debugLogger.debug("No AMD GPUs detected", {}, "gpu");
+    }
+
+    const intelInfo = await detectIntelGpu();
+    if (intelInfo.hasIntelGpu) {
+      debugLogger.info(
+        "Intel GPU detected",
+        { name: intelInfo.gpuName, vramMb: intelInfo.vramMb },
+        "gpu"
+      );
+    } else {
+      debugLogger.debug("No Intel GPUs detected", {}, "gpu");
     }
   }
 
@@ -1813,8 +1824,8 @@ class IPCHandlers {
     });
 
     ipcMain.handle("get-vulkan-whisper-status", async () => {
-      const { detectAmdGpu } = require("../utils/gpuDetection");
-      const gpuInfo = await detectAmdGpu();
+      const { detectVulkanCapableGpu } = require("../utils/gpuDetection");
+      const gpuInfo = await detectVulkanCapableGpu();
       if (!this.whisperVulkanManager) {
         return { downloaded: false, downloading: false, path: null, gpuInfo };
       }
