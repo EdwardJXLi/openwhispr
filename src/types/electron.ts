@@ -1059,6 +1059,39 @@ declare global {
       }>;
       openLogsFolder: () => Promise<{ success: boolean; error?: string }>;
 
+      benchmarkTranscription: (opts?: {
+        runs?: number;
+        settings?: {
+          useLocalWhisper?: boolean;
+          localTranscriptionProvider?: string;
+          whisperModel?: string;
+          parakeetModel?: string;
+          language?: string;
+          customDictionary?: string[];
+        };
+      }) => Promise<
+        | {
+            success: true;
+            runs: number[];
+            stats: { min: number; max: number; mean: number; median: number };
+            audioDurationSec: number;
+            rtfMedian: number;
+            transcript: string;
+            route: "whisper" | "parakeet";
+            model: string | null;
+            language: string | null;
+          }
+        | { success: false; error: string }
+      >;
+      onBenchmarkProgress: (
+        callback: (payload: {
+          phase: "downloading" | "warmup" | "run";
+          index?: number;
+          total?: number;
+          ms?: number;
+        }) => void
+      ) => () => void;
+
       // FFmpeg availability
       checkFFmpegAvailability: () => Promise<FFmpegAvailabilityResult>;
       getAudioDiagnostics: () => Promise<AudioDiagnosticsResult>;

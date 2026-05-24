@@ -753,6 +753,34 @@
         "transcriptionPipeline": "Transcription pipeline"
       },
       "title": "What gets logged"
+    },
+    "benchmark": {
+      "title": "Transcription benchmark",
+      "description": "Time local transcription on an 11-second public-domain clip (JFK speech) using your current speech-to-text settings.",
+      "activeProvider": "Provider",
+      "activeModel": "Model",
+      "activeLanguage": "Language",
+      "activeDictionary": "Dictionary entries",
+      "cloudWarning": "You're currently set to cloud transcription. Switch your Speech-to-Text provider to a local model (Whisper or Parakeet) to benchmark system performance.",
+      "runButton": "Run benchmark",
+      "runningButton": "Running…",
+      "downloading": "Downloading test audio…",
+      "warmup": "Warming up…",
+      "running": "Run {{index}} / {{total}} — {{ms}} ms",
+      "resultsTitle": "Results",
+      "median": "Median",
+      "mean": "Mean",
+      "min": "Min",
+      "max": "Max",
+      "rtf": "Real-time factor (median)",
+      "speedup": "{{x}}× faster than realtime",
+      "transcript": "Transcript",
+      "toasts": {
+        "failed": {
+          "title": "Benchmark failed",
+          "description": "{{error}}"
+        }
+      }
     }
   },
   "apiKeysSection": {

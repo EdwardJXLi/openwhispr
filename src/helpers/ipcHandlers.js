@@ -1466,6 +1466,130 @@ class IPCHandlers {
       }
     });
 
+    ipcMain.handle("benchmark-transcription", async (event, opts = {}) => {
+      const https = require("https");
+      const runs = Math.max(1, Math.min(20, Number(opts.runs) || 5));
+      const settings = opts.settings || {};
+
+      // Public-domain JFK clip from whisper.cpp samples. 16kHz mono, ~11s.
+      const BENCH_AUDIO_URL =
+        "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/samples/jfk.wav";
+      const BENCH_DURATION_SEC = 11.0;
+
+      const cacheDir = path.join(app.getPath("userData"), "benchmark-audio");
+      const audioPath = path.join(cacheDir, "jfk.wav");
+
+      const download = (url, dest) =>
+        new Promise((resolve, reject) => {
+          fs.mkdirSync(path.dirname(dest), { recursive: true });
+          const file = fs.createWriteStream(dest);
+          https
+            .get(url, (res) => {
+              if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                file.close();
+                try { fs.unlinkSync(dest); } catch {}
+                return download(res.headers.location, dest).then(resolve, reject);
+              }
+              if (res.statusCode !== 200) {
+                return reject(new Error(`HTTP ${res.statusCode}`));
+              }
+              res.pipe(file);
+              file.on("finish", () => file.close(resolve));
+            })
+            .on("error", (err) => {
+              try { fs.unlinkSync(dest); } catch {}
+              reject(err);
+            });
+        });
+
+      // Pick the route the benchmark will exercise based on current settings.
+      // Cloud routes are intentionally excluded — network jitter dominates their
+      // latency, so they don't measure the local system's transcription speed.
+      const useLocal = settings.useLocalWhisper !== false;
+      if (!useLocal) {
+        return {
+          success: false,
+          error:
+            "Benchmark requires local transcription. Switch your Speech-to-Text provider to a local model (Whisper or Parakeet) to measure system performance.",
+        };
+      }
+      const route = settings.localTranscriptionProvider === "nvidia" ? "parakeet" : "whisper";
+
+      const transcribeOptions = {
+        model: route === "parakeet" ? settings.parakeetModel : settings.whisperModel,
+        language: settings.language,
+        initialPrompt:
+          Array.isArray(settings.customDictionary) && settings.customDictionary.length > 0
+            ? settings.customDictionary.join(", ")
+            : undefined,
+      };
+
+      try {
+        if (!fs.existsSync(audioPath)) {
+          event.sender.send("benchmark-transcription:progress", { phase: "downloading" });
+          await download(BENCH_AUDIO_URL, audioPath);
+        }
+        const audioBuffer = fs.readFileSync(audioPath);
+
+        const runOnce = async () => {
+          if (route === "parakeet") {
+            return this.parakeetManager.transcribeLocalParakeet(audioBuffer, transcribeOptions);
+          }
+          const vadOptions = this._resolveWhisperVadOptions("dictation");
+          return this.whisperManager.transcribeLocalWhisper(audioBuffer, {
+            ...transcribeOptions,
+            ...vadOptions,
+          });
+        };
+
+        event.sender.send("benchmark-transcription:progress", { phase: "warmup" });
+        const warm = await runOnce();
+        if (!warm.success) {
+          return { success: false, error: warm.error || warm.message || "Warmup failed" };
+        }
+
+        const timings = [];
+        for (let i = 0; i < runs; i++) {
+          const t0 = process.hrtime.bigint();
+          const r = await runOnce();
+          const ms = Number(process.hrtime.bigint() - t0) / 1e6;
+          if (!r.success) {
+            return { success: false, error: r.error || r.message || `Run ${i + 1} failed` };
+          }
+          timings.push(ms);
+          event.sender.send("benchmark-transcription:progress", {
+            phase: "run",
+            index: i + 1,
+            total: runs,
+            ms,
+          });
+        }
+
+        const sorted = [...timings].sort((a, b) => a - b);
+        const sum = timings.reduce((a, b) => a + b, 0);
+        const median = sorted[Math.floor(sorted.length / 2)];
+        return {
+          success: true,
+          runs: timings,
+          stats: {
+            min: sorted[0],
+            max: sorted[sorted.length - 1],
+            mean: sum / timings.length,
+            median,
+          },
+          audioDurationSec: BENCH_DURATION_SEC,
+          rtfMedian: median / 1000 / BENCH_DURATION_SEC,
+          transcript: (warm.text || "").trim(),
+          route,
+          model: transcribeOptions.model || null,
+          language: transcribeOptions.language || null,
+        };
+      } catch (error) {
+        debugLogger.error("Benchmark transcription error", { error: error.message });
+        return { success: false, error: error.message };
+      }
+    });
+
     ipcMain.handle("paste-text", async (event, text, options) => {
       const mainWindow = this.windowManager?.mainWindow;
       const targetPid = this.textEditMonitor?.lastTargetPid || null;
