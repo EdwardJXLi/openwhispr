@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
-import { FolderOpen, Copy, Check } from "lucide-react";
+import { FolderOpen, Copy, Check, Gauge } from "lucide-react";
 import { useToast } from "./ui/useToast";
 import { Toggle } from "./ui/toggle";
 import { useSettingsLayout } from "./ui/useSettingsLayout";
 import logger from "../utils/logger";
+import { useSettings } from "../hooks/useSettings";
 
 export default function DeveloperSection() {
   const { t } = useTranslation();
@@ -15,7 +16,37 @@ export default function DeveloperSection() {
   const [isLoading, setIsLoading] = useState(true);
   const [isToggling, setIsToggling] = useState(false);
   const [copiedPath, setCopiedPath] = useState(false);
+  const [benchRunning, setBenchRunning] = useState(false);
+  const [benchStatus, setBenchStatus] = useState<string | null>(null);
+  const [benchResult, setBenchResult] = useState<
+    | {
+        stats: { min: number; max: number; mean: number; median: number };
+        audioDurationSec: number;
+        rtfMedian: number;
+        transcript: string;
+        route: string;
+        model: string | null;
+        language: string | null;
+      }
+    | null
+  >(null);
   const { toast } = useToast();
+  const {
+    useLocalWhisper,
+    localTranscriptionProvider,
+    whisperModel,
+    parakeetModel,
+    preferredLanguage,
+    customDictionary,
+  } = useSettings();
+
+  const activeProviderLabel = !useLocalWhisper
+    ? "Cloud (not benchmarkable)"
+    : localTranscriptionProvider === "nvidia"
+      ? "Parakeet (local)"
+      : "Whisper (local)";
+  const activeModel =
+    localTranscriptionProvider === "nvidia" ? parakeetModel : whisperModel;
 
   const loadDebugState = useCallback(async () => {
     try {
@@ -86,6 +117,75 @@ export default function DeveloperSection() {
         description: t("developerSection.toasts.openLogsFailed.description"),
         variant: "destructive",
       });
+    }
+  };
+
+  const handleRunBenchmark = async () => {
+    if (benchRunning) return;
+    setBenchRunning(true);
+    setBenchResult(null);
+    setBenchStatus(t("developerSection.benchmark.warmup"));
+
+    const unsubscribe = window.electronAPI.onBenchmarkProgress((p) => {
+      if (p.phase === "downloading") {
+        setBenchStatus(t("developerSection.benchmark.downloading"));
+      } else if (p.phase === "warmup") {
+        setBenchStatus(t("developerSection.benchmark.warmup"));
+      } else if (p.phase === "run" && p.index && p.total && typeof p.ms === "number") {
+        setBenchStatus(
+          t("developerSection.benchmark.running", {
+            index: p.index,
+            total: p.total,
+            ms: p.ms.toFixed(0),
+          })
+        );
+      }
+    });
+
+    try {
+      const result: any = await window.electronAPI.benchmarkTranscription({
+        runs: 5,
+        settings: {
+          useLocalWhisper,
+          localTranscriptionProvider,
+          whisperModel,
+          parakeetModel,
+          language: preferredLanguage,
+          customDictionary,
+        },
+      });
+      if (!result.success) {
+        toast({
+          title: t("developerSection.benchmark.toasts.failed.title"),
+          description: t("developerSection.benchmark.toasts.failed.description", {
+            error: result.error,
+          }),
+          variant: "destructive",
+        });
+        return;
+      }
+      setBenchResult({
+        stats: result.stats,
+        audioDurationSec: result.audioDurationSec,
+        rtfMedian: result.rtfMedian,
+        transcript: result.transcript,
+        route: result.route,
+        model: result.model,
+        language: result.language,
+      });
+    } catch (error) {
+      logger.error("Benchmark failed", { error }, "developer");
+      toast({
+        title: t("developerSection.benchmark.toasts.failed.title"),
+        description: t("developerSection.benchmark.toasts.failed.description", {
+          error: error instanceof Error ? error.message : String(error),
+        }),
+        variant: "destructive",
+      });
+    } finally {
+      unsubscribe();
+      setBenchStatus(null);
+      setBenchRunning(false);
     }
   };
 
@@ -188,6 +288,126 @@ export default function DeveloperSection() {
             </Button>
           </div>
         )}
+      </div>
+
+      {/* Transcription benchmark */}
+      <div>
+        <div className="mb-5">
+          <h3 className="text-[15px] font-semibold text-foreground tracking-tight">
+            {t("developerSection.benchmark.title")}
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+            {t("developerSection.benchmark.description")}
+          </p>
+        </div>
+        <div className="rounded-xl border border-border/60 dark:border-border-subtle bg-card dark:bg-surface-2">
+          <div className="px-5 py-4 space-y-4">
+            <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
+              <span className="text-muted-foreground">
+                {t("developerSection.benchmark.activeProvider")}
+              </span>
+              <span className="font-mono text-foreground">{activeProviderLabel}</span>
+              <span className="text-muted-foreground">
+                {t("developerSection.benchmark.activeModel")}
+              </span>
+              <span className="font-mono text-foreground break-all">{activeModel || "—"}</span>
+              <span className="text-muted-foreground">
+                {t("developerSection.benchmark.activeLanguage")}
+              </span>
+              <span className="font-mono text-foreground">{preferredLanguage || "auto"}</span>
+              <span className="text-muted-foreground">
+                {t("developerSection.benchmark.activeDictionary")}
+              </span>
+              <span className="font-mono text-foreground">{customDictionary.length}</span>
+            </div>
+
+            {!useLocalWhisper && (
+              <p className="text-xs text-warning leading-relaxed">
+                {t("developerSection.benchmark.cloudWarning")}
+              </p>
+            )}
+
+            <Button
+              onClick={handleRunBenchmark}
+              variant="outline"
+              size="sm"
+              disabled={benchRunning || !useLocalWhisper}
+              className="w-full"
+            >
+              <Gauge className="mr-2 h-3.5 w-3.5" />
+              {benchRunning
+                ? t("developerSection.benchmark.runningButton")
+                : t("developerSection.benchmark.runButton")}
+            </Button>
+
+            {benchStatus && (
+              <p className="text-xs text-muted-foreground font-mono">{benchStatus}</p>
+            )}
+
+            {benchResult && (
+              <div className="space-y-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="text-xs font-medium text-muted-foreground/60 uppercase tracking-wider">
+                    {t("developerSection.benchmark.resultsTitle")}
+                  </p>
+                  <p className="text-xs font-mono text-muted-foreground truncate">
+                    {benchResult.route} · {benchResult.model || "—"}
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      {t("developerSection.benchmark.median")}
+                    </span>
+                    <span className="font-mono">{benchResult.stats.median.toFixed(0)} ms</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      {t("developerSection.benchmark.mean")}
+                    </span>
+                    <span className="font-mono">{benchResult.stats.mean.toFixed(0)} ms</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      {t("developerSection.benchmark.min")}
+                    </span>
+                    <span className="font-mono">{benchResult.stats.min.toFixed(0)} ms</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      {t("developerSection.benchmark.max")}
+                    </span>
+                    <span className="font-mono">{benchResult.stats.max.toFixed(0)} ms</span>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-border/30 space-y-1.5">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {t("developerSection.benchmark.rtf")}
+                    </span>
+                    <span className="font-mono">{benchResult.rtfMedian.toFixed(3)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">&nbsp;</span>
+                    <span className="font-mono text-success">
+                      {t("developerSection.benchmark.speedup", {
+                        x: (1 / benchResult.rtfMedian).toFixed(2),
+                      })}
+                    </span>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-border/30">
+                  <p className="text-xs font-medium text-muted-foreground/60 uppercase tracking-wider mb-1">
+                    {t("developerSection.benchmark.transcript")}
+                  </p>
+                  <p className="text-xs text-muted-foreground italic leading-relaxed">
+                    "{benchResult.transcript}"
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* What gets logged */}

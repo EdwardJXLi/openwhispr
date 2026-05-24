@@ -468,6 +468,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
   setDebugLogging: (enabled) => ipcRenderer.invoke("set-debug-logging", enabled),
   openLogsFolder: () => ipcRenderer.invoke("open-logs-folder"),
 
+  // Transcription benchmark (developer tool)
+  benchmarkTranscription: (opts) => ipcRenderer.invoke("benchmark-transcription", opts),
+  onBenchmarkProgress: (callback) => {
+    const listener = (_event, payload) => callback?.(payload);
+    ipcRenderer.on("benchmark-transcription:progress", listener);
+    return () => ipcRenderer.removeListener("benchmark-transcription:progress", listener);
+  },
+
   // System settings helpers for microphone/audio permissions
   requestMicrophoneAccess: () => ipcRenderer.invoke("request-microphone-access"),
   checkMicrophoneAccess: () => ipcRenderer.invoke("check-microphone-access"),
